@@ -1,11 +1,13 @@
 import sys
 import csv
 import textract
+import array
 
 path =  str(sys.argv[1])
 lines = textract.process(path).lower()
 inArray = lines.split("\n")
 outArray = []
+
 with open(str(sys.argv[2])) as csvfile:
 	csvReader = csv.reader(csvfile, delimiter=" ")
 	for row in csvReader:
@@ -20,12 +22,18 @@ with open(str(sys.argv[2])) as csvfile:
 						lastchar = val[lastIdx]
 					sepList = [ "_", ")", ":", ";", ".", ",", " ", "\"", "'"]
 					if any (lastchar in s for s in sepList):
-						outArray.append(str(idx) +","+ str(val.find(inputstr)))
+						outArray.append(idx)
+						outArray.append(val.find(inputstr))
 						break
 				elif idx+1 == len(inArray):
 					print "the cipher key (document) does not contain value: " + inputstr
 					quit()
 
-with open("out.csv", "a") as csvfile:
-	writer = csv.writer(csvfile, lineterminator="\n")
-	writer.writerow(outArray)
+if len(sys.argv) == 4 and str(sys.argv[3]) == '-b':
+	with open('out.pcm', 'wb') as out:
+	    pcm_vals = array.array('h', outArray) # 16-bit signed
+	    pcm_vals.tofile(out)
+else:
+	with open("out.csv", "a") as csvfile:
+		writer = csv.writer(csvfile, lineterminator="\n")
+		writer.writerow(outArray)
