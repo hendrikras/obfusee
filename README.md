@@ -10,7 +10,13 @@ If successful, a csv or binary output file is created with the references to lin
 The original key file can then be used to decode the message.
 
 Python and the textract package is required to run.
-to install textract visit: http://textract.readthedocs.io/en/stable/installation.html
+
+```
+pip install -r requirements.txt
+```
+
+> **Note:** textract has system-level dependencies (antiword, poppler, etc.).
+> See the [textract installation guide](http://textract.readthedocs.io/en/stable/installation.html) if you run into issues.
 
 to encode a message run:
 python encode.py example_key_doc.epub input.csv
