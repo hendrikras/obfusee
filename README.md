@@ -9,20 +9,24 @@ or it will exit mentioning the word it can't find.
 If successful, a csv or binary output file is created with the references to lines and words from the key file.
 The original key file can then be used to decode the message.
 
-Python and the textract package is required to run.
+Python and the textract package is required to run. This project uses [uv](https://docs.astral.sh/uv/) for package management.
 
 ```
-pip install -r requirements.txt
+uv sync
 ```
 
 > **Note:** textract has system-level dependencies (antiword, poppler, etc.).
 > See the [textract installation guide](http://textract.readthedocs.io/en/stable/installation.html) if you run into issues.
 
 to encode a message run:
-python encode.py example_key_doc.epub input.csv
+```
+uv run python encode.py example_key_doc.epub input.csv
+```
 
 to decode:
-python decode.py example_key_doc.epub out.csv
+```
+uv run python decode.py example_key_doc.epub out.csv
+```
 
-in order to use a binary output file (out.pcb) add '-b' as the last parameter on both commands,
+in order to use a binary output file (out.pcb) add `-b` as the last parameter on both commands,
 this will make the output file smaller in most cases and it will require something like a hex editor for examining it

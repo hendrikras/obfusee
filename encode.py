@@ -4,7 +4,7 @@ import textract
 import array
 
 path =  str(sys.argv[1])
-lines = textract.process(path).lower()
+lines = textract.process(path).decode('utf-8', errors='ignore').lower()
 inArray = lines.split("\n")
 outArray = []
 
@@ -26,7 +26,7 @@ with open(str(sys.argv[2])) as csvfile:
 						outArray.append(val.find(inputstr))
 						break
 				elif idx+1 == len(inArray):
-					print "the cipher key (document) does not contain value: " + inputstr
+					print("the cipher key (document) does not contain value: " + inputstr)
 					quit()
 
 if len(sys.argv) == 4 and str(sys.argv[3]) == '-b':
