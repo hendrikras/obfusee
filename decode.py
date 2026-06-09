@@ -1,5 +1,11 @@
 import sys
 import csv
+import warnings
+
+from bs4 import XMLParsedAsHTMLWarning
+
+warnings.filterwarnings("ignore", category=XMLParsedAsHTMLWarning)
+
 import textract
 from array import array
 from sys import byteorder as system_endian

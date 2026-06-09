@@ -1,5 +1,11 @@
 import sys
 import csv
+import warnings
+
+from bs4 import XMLParsedAsHTMLWarning
+
+warnings.filterwarnings("ignore", category=XMLParsedAsHTMLWarning)
+
 import textract
 import array
 
@@ -36,7 +42,7 @@ def main():
 		    pcm_vals = array.array('h', outArray) # 16-bit signed
 		    pcm_vals.tofile(out)
 	else:
-		with open("out.csv", "a") as csvfile:
+		with open("out.csv", "w") as csvfile:
 			writer = csv.writer(csvfile, lineterminator="\n")
 			writer.writerow(outArray)
 
