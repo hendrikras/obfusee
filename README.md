@@ -56,3 +56,31 @@ uv run python main.py -d example_key_doc.epub out.pcm -b
 
 > **Note:** The individual `encode.py` and `decode.py` scripts can still be called directly
 > if you prefer to bypass the dispatcher.
+
+## Standalone binary
+
+You can freeze the project into a single executable with PyInstaller — no Python
+runtime needed on the target machine.
+
+```
+uv run pyinstaller --onefile --name obfusee \
+  --hidden-import encode --hidden-import decode \
+  --collect-all textract main.py
+```
+
+The binary is placed at `dist/obfusee` (~56 MB on macOS arm64).
+
+```
+./dist/obfusee -e example_key_doc.epub input.csv
+./dist/obfusee -d example_key_doc.epub out.csv
+./dist/obfusee -e example_key_doc.epub input.csv -b
+./dist/obfusee -d example_key_doc.epub out.pcm -b
+```
+
+## Testing
+
+Unit tests cover encoding, decoding, the main dispatcher, and end-to-end roundtrips.
+
+```
+.venv/bin/python -m pytest tests/ -v
+```
