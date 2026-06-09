@@ -18,15 +18,41 @@ uv sync
 > **Note:** textract has system-level dependencies (antiword, poppler, etc.).
 > See the [textract installation guide](http://textract.readthedocs.io/en/stable/installation.html) if you run into issues.
 
-to encode a message run:
+## Usage
+
+All operations go through `main.py` with a mode flag:
+
 ```
-uv run python encode.py example_key_doc.epub input.csv
+uv run python main.py -e <key_document> <input_csv> [-b]    # encode
+uv run python main.py -d <key_document> <encoded_file> [-b]  # decode
 ```
 
-to decode:
+The flag can appear anywhere in the argument list; all other arguments are forwarded
+to the appropriate sub-module.
+
+### Examples
+
+Encode a message:
+
 ```
-uv run python decode.py example_key_doc.epub out.csv
+uv run python main.py -e example_key_doc.epub input.csv
 ```
 
-in order to use a binary output file (out.pcb) add `-b` as the last parameter on both commands,
-this will make the output file smaller in most cases and it will require something like a hex editor for examining it
+Decode the result:
+
+```
+uv run python main.py -d example_key_doc.epub out.csv
+```
+
+### Binary mode
+
+Add `-b` to use a binary PCM output/input file instead of CSV.
+This makes the output smaller and harder to eyeball with a text editor:
+
+```
+uv run python main.py -e example_key_doc.epub input.csv -b
+uv run python main.py -d example_key_doc.epub out.pcm -b
+```
+
+> **Note:** The individual `encode.py` and `decode.py` scripts can still be called directly
+> if you prefer to bypass the dispatcher.

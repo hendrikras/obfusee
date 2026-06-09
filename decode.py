@@ -5,8 +5,20 @@ from array import array
 from sys import byteorder as system_endian
 from os import stat
 
-path = str(sys.argv[1])
-lines = textract.process(path).decode('utf-8', errors='ignore').lower().split("\n")
+
+def main():
+	path = str(sys.argv[1])
+	lines = textract.process(path).decode('utf-8', errors='ignore').lower().split("\n")
+
+	if len(sys.argv) == 4 and str(sys.argv[3]) == '-b':
+		fromBinary = read_file(str(sys.argv[2]), sys.byteorder)
+		handle(lines, fromBinary.tolist())
+	else:
+		with open(str(sys.argv[2])) as csvfile:
+			csvreader = csv.reader(csvfile, delimiter=',')
+			for row in csvreader:
+				handle(lines, row)
+
 
 def read_file(filename, endian):
 	count = stat(filename).st_size // 2
@@ -17,7 +29,7 @@ def read_file(filename, endian):
 			result.byteswap()
 		return result
 
-def handle(row):
+def handle(lines, row):
 	words = ""
 	wordTotal = len(row) // 2
 	for idx in range(0, wordTotal):
@@ -36,11 +48,5 @@ def handle(row):
 		words += subline[:seperatorIdx] + " "
 	print(words)
 
-if len(sys.argv) == 4 and str(sys.argv[3]) == '-b':
-	fromBinary = read_file(str(sys.argv[2]), sys.byteorder)
-	handle(fromBinary.tolist())
-else:
-	with open(str(sys.argv[2])) as csvfile:
-		csvreader = csv.reader(csvfile, delimiter=',')
-		for row in csvreader:
-			handle(row)
+if __name__ == "__main__":
+	main()
