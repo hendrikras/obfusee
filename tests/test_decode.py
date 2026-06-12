@@ -85,6 +85,43 @@ class TestHandle:
         assert buf.getvalue().strip() == "abc,def"
 
 
+class TestDecodeLegacyPairs:
+    """Decoding legacy (pair-based) CSV format — backwards compat."""
+
+    def test_decodes_legacy_pairs(self, key_text, capsys):
+        """Old pair format (line,char) should still decode via separators."""
+        lines = key_text.split("\n")
+        row = ["1", "10", "1", "17"]  # "secret", "message"
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            decode.handle(lines, row)
+        # Legacy adds a trailing space after each word
+        assert buf.getvalue().strip() == "secret message"
+
+    def test_decodes_legacy_multiple_words(self, key_text, capsys):
+        """Multiple legacy pairs decode to the correct phrase."""
+        lines = key_text.split("\n")
+        row = ["0", "0", "0", "4", "0", "10", "0", "16"]
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            decode.handle(lines, row)
+        assert buf.getvalue().strip() == "the quick brown fox"
+
+    def test_legacy_detected_via_main(self, key_file, capsys):
+        """decode.main() should auto-detect legacy pair format."""
+        import tempfile
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as f:
+            f.write("1,10,1,17\n")
+            csv_path = f.name
+        try:
+            sys.argv = ["decode.py", key_file, csv_path]
+            decode.main()
+            captured = capsys.readouterr()
+            assert captured.out.strip() == "secret message"
+        finally:
+            os.unlink(csv_path)
+
+
 class TestDecodeCSV:
     """Integration tests for decode.main() with CSV input."""
 
