@@ -3,7 +3,8 @@
 import sys
 import os
 import csv
-import tempfile
+import io
+from contextlib import redirect_stdout
 
 import encode
 import decode
@@ -21,20 +22,15 @@ def test_roundtrip_csv(key_file, work_dir):
     sys.argv = ["encode.py", key_file, input_path]
     encode.main()
 
-    # Decode
+    # Decode — capture stdout
     out_csv = os.path.join(work_dir, "out.csv")
     sys.argv = ["decode.py", key_file, out_csv]
-    decode.main()
+    buf = io.StringIO()
+    with redirect_stdout(buf):
+        decode.main()
+    decoded = buf.getvalue().strip()
 
-    # Verify output written to stdout by decode.main()
-    # (decode prints to stdout, we can't easily capture it here without capsys)
-    # Instead, verify the csv was written with correct indices
-    with open(out_csv) as f:
-        reader = csv.reader(f, delimiter=",")
-        indices = [int(x) for x in next(reader)]
-
-    # The word "the" appears 2x in the key, so it will encode first occurrence
-    assert len(indices) == len(original_text.split()) * 2
+    assert decoded == original_text
 
 
 def test_roundtrip_binary(key_file, work_dir):
@@ -49,16 +45,21 @@ def test_roundtrip_binary(key_file, work_dir):
     sys.argv = ["encode.py", key_file, input_path, "-b"]
     encode.main()
 
-    # Decode (binary)
+    # Decode (binary) — capture stdout
     out_pcm = os.path.join(work_dir, "out.pcm")
     sys.argv = ["decode.py", key_file, out_pcm, "-b"]
-    decode.main()
+    buf = io.StringIO()
+    with redirect_stdout(buf):
+        decode.main()
+    decoded = buf.getvalue().strip()
+
+    assert decoded == original_text
 
 
-def test_roundtrip_with_punctuation(key_file, work_dir):
-    """Words with adjacent punctuation should still roundtrip correctly."""
+def test_roundtrip_uses_subword_tokenization(key_file, work_dir):
+    """Words not in the key document should still roundtrip via subword splits."""
     input_path = os.path.join(work_dir, "input.csv")
-    original_text = "hello world"
+    original_text = "obfusee works fine"
     with open(input_path, "w") as f:
         f.write(original_text + "\n")
 
@@ -69,4 +70,9 @@ def test_roundtrip_with_punctuation(key_file, work_dir):
     # Decode CSV
     out_csv = os.path.join(work_dir, "out.csv")
     sys.argv = ["decode.py", key_file, out_csv]
-    decode.main()
+    buf = io.StringIO()
+    with redirect_stdout(buf):
+        decode.main()
+    decoded = buf.getvalue().strip()
+
+    assert decoded == original_text

@@ -1,22 +1,28 @@
 # obfusee
-A very simple book cipher encoder/ decoder for the command line
 
-It will take an input file written in plain text, and will try to find the individual words in a key file.
-This can include: txt, pdf, epub, word or any other format supported by textract.
+A book cipher encoder/decoder with **BPE subword tokenization** — like LLMs do.
 
-The key file needs to have all words mentioned that are also listed in the input file,
-or it will exit mentioning the word it can't find.
-If successful, a csv or binary output file is created with the references to lines and words from the key file.
-The original key file can then be used to decode the message.
+It takes a plain-text message and encodes it as (line, character, length) triplets
+pointing into a key document (txt, pdf, epub, etc.). The same document is used to
+decode the original message.
 
-Python and the textract package is required to run. This project uses [uv](https://docs.astral.sh/uv/) for package management.
+Because the encoder uses **BPE (Byte Pair Encoding)** to split words into subword
+tokens, any word can be encoded — even words that don't appear verbatim in the key
+document. For example, "obfusee" and "xyzzysomething" work fine as long as their
+subword pieces (characters and frequent n-grams) exist in the document.
+
+## Setup
+
+Python 3 and the textract package are required. This project uses
+[uv](https://docs.astral.sh/uv/) for package management.
 
 ```
 uv sync
 ```
 
 > **Note:** textract has system-level dependencies (antiword, poppler, etc.).
-> See the [textract installation guide](http://textract.readthedocs.io/en/stable/installation.html) if you run into issues.
+> See the [textract installation guide](http://textract.readthedocs.io/en/stable/installation.html)
+> if you run into issues.
 
 ## Usage
 
@@ -54,8 +60,21 @@ uv run python main.py -e example_key_doc.epub input.csv -b
 uv run python main.py -d example_key_doc.epub out.pcm -b
 ```
 
-> **Note:** The individual `encode.py` and `decode.py` scripts can still be called directly
-> if you prefer to bypass the dispatcher.
+### Subword tokenization
+
+The encoder trains a BPE tokenizer on the key document (500 merges by default),
+then tokenizes the input message into known subword pieces. Each token is stored
+as a triplet — (line, character_position, length) — that points to its occurrence
+in the document. This means:
+
+- Words that exist in the document are encoded as-is (possibly split into subwords).
+- Words that **don't** exist in the document are split into smaller pieces that do
+  (down to individual characters if needed).
+- Any message can be encoded as long as all its *characters* appear in the
+  document — which is almost always the case for typical key documents.
+
+> **Note:** The individual `encode.py` and `decode.py` scripts can still be called
+> directly if you prefer to bypass the dispatcher.
 
 ## Standalone binary
 

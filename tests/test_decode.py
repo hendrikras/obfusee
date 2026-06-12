@@ -15,48 +15,74 @@ class TestHandle:
     """Test decode.handle() directly — it's the core decoding logic."""
 
     def test_decodes_single_word(self, key_text):
-        """Decoding a single line,char pair should return that word."""
+        """Decoding a single triplet should return that word."""
         lines = key_text.split("\n")
-        row = ["0", "0"]  # line 0, char 0 → "the"
+        row = ["0", "0", "3"]  # line 0, char 0, len 3 → "the"
         buf = io.StringIO()
         with redirect_stdout(buf):
             decode.handle(lines, row)
         assert buf.getvalue().strip() == "the"
 
-    def test_decodes_multiple_words(self, key_text):
-        """Decoding multiple pairs should reconstruct the phrase."""
+    def test_decodes_multiple_words_with_spaces(self, key_text):
+        """Decoding triplets including space tokens should reconstruct the phrase."""
         lines = key_text.split("\n")
-        row = ["0", "0", "0", "4", "0", "10", "0", "16"]
+        # "the quick brown fox" → tokens: ["the"," ","quick"," ","brown"," ","fox"]
+        row = [
+            "0", "0", "3",     # "the"
+            "0", "3", "1",     # " "
+            "0", "4", "5",     # "quick"
+            "0", "3", "1",     # " "
+            "0", "10", "5",    # "brown"
+            "0", "3", "1",     # " "
+            "0", "16", "3",    # "fox"
+        ]
         buf = io.StringIO()
         with redirect_stdout(buf):
             decode.handle(lines, row)
         assert buf.getvalue().strip() == "the quick brown fox"
 
     def test_decodes_from_different_lines(self, key_text):
-        """Words can span different lines in the key document."""
+        """Tokens can span different lines in the key document."""
         lines = key_text.split("\n")
-        # "fox" (0,16), "secret" (1,10), "message" (1,17), "world" (2,6)
-        row = ["0", "16", "1", "10", "1", "17", "2", "6"]
+        # "fox secret message world"
+        # tokens: ["fox"," ","secret"," ","message"," ","world"]
+        row = [
+            "0", "16", "3",    # "fox"    → line 0
+            "0", "3", "1",     # " "
+            "1", "10", "6",    # "secret" → line 1
+            "0", "3", "1",     # " "
+            "1", "17", "7",    # "message"→ line 1
+            "0", "3", "1",     # " "
+            "2", "6", "5",     # "world"  → line 2
+        ]
         buf = io.StringIO()
         with redirect_stdout(buf):
             decode.handle(lines, row)
         assert buf.getvalue().strip() == "fox secret message world"
 
-    def test_stops_at_separator(self):
-        """Decoding should stop at punctuation/whitespace separators."""
+    def test_exact_length_extraction(self):
+        """Decoder uses the length field, not separator-based parsing."""
         lines = ["hello, world! this:test;"]
         buf = io.StringIO()
         with redirect_stdout(buf):
-            decode.handle(lines, ["0", "0"])
+            decode.handle(lines, ["0", "0", "5"])
         assert buf.getvalue().strip() == "hello"
 
-    def test_reads_to_end_of_line_when_no_separator(self):
-        """If no separator found, decode should read to end of line."""
-        lines = ["nopunctuationhere"]
+    def test_reads_partial_token_by_length(self):
+        """Decoder should read exactly `length` chars, even if a separator is inside."""
+        lines = ["abc,def"]
         buf = io.StringIO()
         with redirect_stdout(buf):
-            decode.handle(lines, ["0", "0"])
-        assert buf.getvalue().strip() == "nopunctuationhere"
+            decode.handle(lines, ["0", "0", "4"])
+        assert buf.getvalue().strip() == "abc,"
+
+    def test_reads_beyond_separator_by_length(self):
+        """Decoder reads exact length regardless of separators."""
+        lines = ["abc,def"]
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            decode.handle(lines, ["0", "0", "7"])
+        assert buf.getvalue().strip() == "abc,def"
 
 
 class TestDecodeCSV:
@@ -91,7 +117,8 @@ class TestDecodeBinary:
     def test_decodes_pcm_to_message(self, key_file, capsys):
         """Decoding a PCM binary should print the reconstructed message."""
         import array
-        pcm_data = array.array("h", [1, 10, 1, 17])
+        # triplets: "secret" (1,10,6), " " (0,3,1), "message" (1,17,7)
+        pcm_data = array.array("h", [1, 10, 6, 0, 3, 1, 1, 17, 7])
         with tempfile.NamedTemporaryFile(suffix=".pcm", delete=False) as f:
             pcm_data.tofile(f)
             pcm_path = f.name

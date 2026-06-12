@@ -41,17 +41,19 @@ def input_csv_file(input_csv_content):
 
 @pytest.fixture
 def encoded_csv_content():
-    """Known encoded output: indices into key_text above.
+    """Known encoded output: triplets into key_text above.
 
     key_text lines:
       0: "the quick brown fox jumps over the lazy dog"
       1: "this is a secret message for testing"
       2: "hello world and all who inhabit it"
 
-    "secret"  → line 1, char 10
-    "message" → line 1, char 17
+    tokenize("secret message") → ["secret", " ", "message"]
+    "secret"  → line 1, char 10, len 6
+    " "       → line 0, char  3, len 1
+    "message" → line 1, char 17, len 7
     """
-    return "1,10,1,17\n"
+    return "1,10,6,0,3,1,1,17,7\n"
 
 
 @pytest.fixture

@@ -39,41 +39,71 @@ def _read_pcm(path):
 
 
 class TestEncodeCSV:
-    def test_encodes_words_to_line_char_indices(self, key_file, input_csv_file, work_dir):
-        """Encoding 'secret message' should produce correct line,char pairs."""
+    def test_encodes_words_to_triplets(self, key_file, input_csv_file, work_dir):
+        """Encoding 'secret message' should produce line,char,len triplets."""
         _run_encode(key_file, input_csv_file)
         indices = _read_csv("out.csv")
-        # "secret" → line 1, char 10; "message" → line 1, char 17
-        assert indices == [1, 10, 1, 17]
+        # tokenize("secret message") → ["secret", " ", "message"]
+        # "secret"  → line 1, char 10, len 6
+        # " "       → line 0, char  3, len 1
+        # "message" → line 1, char 17, len 7
+        assert indices == [1, 10, 6, 0, 3, 1, 1, 17, 7]
 
     def test_encodes_multiple_words(self, key_file, work_dir):
-        """Encoding 'the quick brown fox' should produce correct indices."""
+        """Encoding 'the quick brown fox' should produce correct triplets."""
         csv_path = os.path.join(work_dir, "input.csv")
         with open(csv_path, "w") as f:
             f.write("the quick brown fox\n")
         _run_encode(key_file, csv_path)
         indices = _read_csv("out.csv")
-        # "the" → line 0, char 0; "quick" → line 0, char 4
-        # "brown" → line 0, char 10; "fox" → line 0, char 16
-        assert indices == [0, 0, 0, 4, 0, 10, 0, 16]
+        # tokenize("the quick brown fox") → ["the"," ","quick"," ","brown"," ","fox"]
+        # "the"   → line 0, char  0, len 3
+        # " "     → line 0, char  3, len 1
+        # "quick" → line 0, char  4, len 5
+        # " "     → line 0, char  3, len 1
+        # "brown" → line 0, char 10, len 5
+        # " "     → line 0, char  3, len 1
+        # "fox"   → line 0, char 16, len 3
+        assert indices == [
+            0, 0, 3,
+            0, 3, 1,
+            0, 4, 5,
+            0, 3, 1,
+            0, 10, 5,
+            0, 3, 1,
+            0, 16, 3,
+        ]
 
-    def test_word_not_found_exits_with_error(self, key_file, work_dir, capsys):
-        """Encoding a word not in the key document should print error and exit."""
+    def test_character_not_found_exits_with_error(self, key_file, work_dir, capsys):
+        """Encoding a char not in the key document should print error and exit."""
         csv_path = os.path.join(work_dir, "input.csv")
         with open(csv_path, "w") as f:
-            f.write("nonexistentword\n")
+            f.write("hello123\n")
         with pytest.raises(SystemExit):
             _run_encode(key_file, csv_path)
         captured = capsys.readouterr()
         assert "does not contain value" in captured.out
 
+    def test_unknown_word_is_split_into_subwords(self, key_file, work_dir):
+        """A word not in the key doc should be split into known subword pieces."""
+        csv_path = os.path.join(work_dir, "input.csv")
+        with open(csv_path, "w") as f:
+            f.write("obfusee\n")
+        _run_encode(key_file, csv_path)
+        indices = _read_csv("out.csv")
+        # "obfusee" tokenizes (on this small doc, with 500 vocab, with
+        # default merges) into pieces like ["o","b","f","u","se","e"].
+        # Each piece is a triplet.
+        assert len(indices) % 3 == 0
+        assert len(indices) >= 3  # at least one token
+
 
 class TestEncodeBinary:
     def test_encodes_to_pcm_binary(self, key_file, input_csv_file, work_dir):
-        """Binary mode should produce a .pcm file with matching indices."""
+        """Binary mode should produce a .pcm file with matching triplets."""
         _run_encode(key_file, input_csv_file, binary=True)
         indices = _read_pcm("out.pcm")
-        assert indices == [1, 10, 1, 17]
+        assert indices == [1, 10, 6, 0, 3, 1, 1, 17, 7]
 
     def test_binary_and_csv_produce_same_data(self, key_file, input_csv_file, work_dir):
         """Binary and CSV modes should encode the same indices."""
