@@ -62,16 +62,26 @@ uv run python main.py -d example_key_doc.epub out.pcm -b
 
 ### Subword tokenization
 
-The encoder trains a BPE tokenizer on the key document (500 merges by default),
-then tokenizes the input message into known subword pieces. Each token is stored
-as a triplet — (line, character_position, length) — that points to its occurrence
-in the document. This means:
+The encoder uses a **hybrid approach** for maximum compatibility:
 
-- Words that exist in the document are encoded as-is (possibly split into subwords).
-- Words that **don't** exist in the document are split into smaller pieces that do
+1. **Whole-word match** (preferred) — if the word appears as a substring in the
+   key document, it is encoded as a single token. This matches the behaviour of
+   earlier versions for words that exist in the document.
+2. **BPE subword fallback** — if the word is not found, a BPE tokenizer (trained
+   on the key document with 500 merges) splits it into known subword pieces.
+   These pieces are guaranteed to exist in the document since they are derived
+   from it.
+
+This means:
+
+- Words that exist in the document are encoded as single tokens (backwards
+  compatible).
+- Words that **don't** exist in the document are split into smaller pieces
   (down to individual characters if needed).
-- Any message can be encoded as long as all its *characters* appear in the
-  document — which is almost always the case for typical key documents.
+
+Each token is stored as a triplet — `(line, character_position, length)` — that
+points to its occurrence in the key document. The decoder reads exactly `length`
+characters from that position, so no separator-based scanning is needed.
 
 > **Note:** The individual `encode.py` and `decode.py` scripts can still be called
 > directly if you prefer to bypass the dispatcher.
